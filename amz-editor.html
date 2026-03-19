@@ -24,20 +24,23 @@
         /* Editor Section */
         .editor-container { flex: 1; border: 1px solid #ccc; background: #fff; display: flex; flex-direction: column; min-height: 0; }
         
-        /* Toolbar */
+        /* Toolbar (Removed "View The HTML Code" from here) */
         .toolbar { padding: 10px 15px; border-bottom: 1px solid #eee; display: flex; align-items: center; background: #fff; }
-        .toolbar-label { color: #888; font-size: 14px; margin-right: 20px; }
-        .toolbar-divider { width: 1px; height: 20px; background: #eee; margin: 0 15px; }
         .tool-btn { background: none; border: none; font-size: 16px; cursor: pointer; color: #555; padding: 5px 8px; font-family: "Times New Roman", Times, serif; }
         .tool-btn:hover { color: #000; background: #f0f0f0; border-radius: 3px; }
         .tool-icon { font-size: 18px; line-height: 1; font-family: Arial, sans-serif; }
+        .toolbar-divider { width: 1px; height: 20px; background: #eee; margin: 0 15px; }
 
         /* Dual Pane Work Area */
         .work-area { display: flex; flex: 1; overflow: hidden; }
         .pane { flex: 1; display: flex; flex-direction: column; width: 50%; }
         
+        /* Added Right Pane Header */
+        .pane-header { padding: 10px 20px; font-size: 14px; color: #888; border-bottom: 1px solid #eee; border-left: 1px solid #eee; background: #fafafa; }
+        
         #visual-editor { flex: 1; padding: 20px; overflow-y: auto; outline: none; font-size: 14px; line-height: 1.5; }
-        #visual-editor p { margin-top: 0; }
+        #visual-editor p { margin-top: 0; margin-bottom: 10px; }
+        
         #code-editor { flex: 1; padding: 20px; font-family: monospace; font-size: 14px; border: none; border-left: 1px solid #eee; outline: none; resize: none; background: #fcfcfc; color: #444; }
 
         /* Footer Section */
@@ -80,8 +83,6 @@
 
     <div class="editor-container">
         <div class="toolbar">
-            <span class="toolbar-label">View The HTML Code</span>
-            <div class="toolbar-divider"></div>
             <button class="tool-btn" style="font-weight:bold;" onclick="execCmd('bold')">B</button>
             <button class="tool-btn" style="font-style:italic;" onclick="execCmd('italic')">I</button>
             <div class="toolbar-divider"></div>
@@ -94,6 +95,7 @@
                 <div id="visual-editor" contenteditable="true"></div>
             </div>
             <div class="pane">
+                <div class="pane-header">View The HTML Code</div>
                 <textarea id="code-editor" spellcheck="false" placeholder="<p>HTML code will appear here...</p>"></textarea>
             </div>
         </div>
@@ -114,12 +116,22 @@
         const code = document.getElementById('code-editor');
         const charNum = document.getElementById('char-num');
 
+        // 核心修改：强制指定回车键生成 <p> 标签，而非默认的 <div>
+        document.execCommand('defaultParagraphSeparator', false, 'p');
+
+        // 为了确保首次点击或清空后依然生效，在获焦时再次强调该规则
+        visual.addEventListener('focus', () => {
+            document.execCommand('defaultParagraphSeparator', false, 'p');
+        });
+
         // Sync from Visual to Code
         visual.addEventListener('input', () => {
             let html = visual.innerHTML;
+            
             // Handle browser-generated spans for bold/italic
             html = html.replace(/<span style="font-weight:\s*bold;?">(.*?)<\/span>/gi, '<b>$1</b>');
             html = html.replace(/<span style="font-style:\s*italic;?">(.*?)<\/span>/gi, '<i>$1</i>');
+            
             code.value = html;
             updateCount();
         });
@@ -150,7 +162,6 @@
 
         // Update Character Count
         function updateCount() {
-            // Count actual text characters like the original tool
             charNum.innerText = code.value.length;
         }
 
@@ -158,7 +169,6 @@
         function copyHTML() {
             code.select();
             document.execCommand('copy');
-            // Silent copy: No alert popup
         }
 
         // Cleanup HTML silently & remove extra line breaks for compact format
@@ -171,13 +181,12 @@
             // 2. Strip unsupported tags, keeping only the basics
             html = html.replace(/<\/?(?!p|b|strong|br|ul|ol|li|i|em)\w+>/gi, '');
             
-            // 3. Compact formatting: Remove extra line breaks & tabs
+            // 3. Compact formatting: Remove extra physical line breaks & tabs (keeps HTML code compact)
             html = html.replace(/[\r\n\t]+/g, '');
             
             code.value = html;
             visual.innerHTML = html;
             updateCount();
-            // Silent cleanup: No alert popup
         }
     </script>
 </body>
