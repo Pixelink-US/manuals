@@ -1,145 +1,170 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>Pixelink-US 双向同步排版工具 V3.0</title>
+    <title>Pixelink-US | 亚马逊高阶排版系统 V4.0</title>
     <style>
-        :root { --amz-navy: #232f3e; --amz-orange: #febd69; --dark-bg: #1e1e1e; --border-color: #ddd; }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; display: flex; height: 100vh; background: #f0f2f2; overflow: hidden; }
+        :root { --amz-navy: #232f3e; --amz-orange: #ff9900; --bg: #f3f3f3; --border: #d5d9d9; }
+        body { font-family: "Amazon Ember", Arial, sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; background: var(--bg); }
         
-        /* 布局 */
-        #left, #right { width: 50%; display: flex; flex-direction: column; height: 100%; }
-        #left { border-right: 2px solid var(--border-color); box-shadow: 2px 0 5px rgba(0,0,0,0.05); }
+        /* 顶部工具栏 */
+        .header { background: var(--amz-navy); color: white; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; }
+        .toolbar { background: white; padding: 8px 20px; border-bottom: 1px solid var(--border); display: flex; gap: 5px; flex-wrap: wrap; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         
-        /* 工具栏 */
-        .toolbar { background: var(--amz-navy); padding: 10px; display: flex; flex-wrap: wrap; gap: 8px; z-index: 10; }
-        .btn { background: #3a4553; color: white; border: 1px solid #555; padding: 6px 12px; cursor: pointer; border-radius: 4px; font-size: 13px; }
-        .btn:hover { background: #4a5a6a; border-color: var(--amz-orange); }
-        .btn-orange { background: var(--amz-orange); color: #111; font-weight: bold; border: none; }
-        
-        /* 编辑区标题 */
-        .pane-title { background: #eaeded; padding: 8px 15px; font-size: 11px; font-weight: bold; color: #565959; text-transform: uppercase; border-bottom: 1px solid var(--border-color); }
+        /* 按钮样式 */
+        .btn { background: white; border: 1px solid var(--border); padding: 6px 10px; cursor: pointer; border-radius: 3px; font-size: 13px; color: #111; display: flex; align-items: center; gap: 4px; }
+        .btn:hover { background: #f7fafa; border-color: #a2a6ac; }
+        .btn b { font-weight: bold; }
+        .btn i { font-style: italic; }
+        .btn-primary { background: var(--amz-orange); border: 1px solid #a88734; font-weight: bold; margin-left: auto; }
+        .btn-primary:hover { background: #f7ca00; }
 
-        /* 代码端 */
-        textarea { flex-grow: 1; padding: 20px; font-family: 'Fira Code', monospace; font-size: 14px; border: none; outline: none; background: var(--dark-bg); color: #d4d4d4; line-height: 1.6; resize: none; }
+        /* 主体布局：左显右码 */
+        .main-container { display: flex; flex: 1; overflow: hidden; }
+        .pane { display: flex; flex-direction: column; width: 50%; height: 100%; }
+        .pane-title { background: #f0f2f2; padding: 6px 15px; font-size: 11px; font-weight: bold; color: #565959; border-bottom: 1px solid var(--border); text-transform: uppercase; }
 
-        /* 展示框 (可视化编辑端) */
-        #output { flex-grow: 1; padding: 30px; overflow-y: auto; background: white; color: #111; line-height: 1.5; font-size: 15px; outline: none; }
-        
-        /* 亚马逊模拟样式 */
-        #output b, #output strong { font-weight: bold; }
-        #output ul { padding-left: 20px; margin: 10px 0; }
-        #output li { margin-bottom: 5px; }
-        
-        /* 状态条 */
-        .status-bar { background: #f8f8f8; padding: 5px 15px; font-size: 11px; color: #888; border-top: 1px solid var(--border-color); }
+        /* 左侧：可视化展示区 */
+        #visual-editor { flex: 1; padding: 30px; overflow-y: auto; background: white; outline: none; line-height: 1.6; font-size: 14px; color: #111; }
+        #visual-editor ul { padding-left: 25px; }
+        #visual-editor li { margin-bottom: 4px; }
+        #visual-editor:empty:before { content: "在这里开始可视化排版..."; color: #aaa; }
+
+        /* 右侧：代码编辑区 */
+        #code-editor { flex: 1; padding: 20px; font-family: 'Consolas', 'Monaco', monospace; font-size: 14px; border: none; outline: none; background: #fafafa; color: #333; line-height: 1.5; resize: none; border-left: 1px solid var(--border); }
+
+        /* 亚马逊合规样式模拟 */
+        strong, b { font-weight: 700; color: #111; }
     </style>
 </head>
 <body>
 
-    <div id="left">
-        <div class="toolbar">
-            <button class="btn" onclick="execCmd('bold')">加粗 B</button>
-            <button class="btn" onclick="execCmd('italic')">斜体 I</button>
-            <button class="btn" onclick="insertList()">列表 ●</button>
-            <button class="btn" onclick="insertTemplate()">规格模板</button>
-            <div style="flex-grow: 1;"></div>
-            <button class="btn btn-orange" onclick="cleanForAmazon()">合规化并复制</button>
-        </div>
-        <div class="pane-title">代码端 (HTML Code)</div>
-        <textarea id="codeArea" placeholder="在此输入或粘贴 HTML..."></textarea>
+    <div class="header">
+        <div style="font-weight: bold; font-size: 18px;">Pixelink-US <span style="color: var(--amz-orange);">Visual Editor</span></div>
+        <div style="font-size: 12px; opacity: 0.8;">亚马逊 A10 算法合规排版系统</div>
     </div>
 
-    <div id="right">
-        <div class="pane-title">展示框 (可视化预览 - 可直接在此点击修改)</div>
-        <div id="output" contenteditable="true" placeholder="可以直接在这里输入文字并排版..."></div>
-        <div class="status-bar">提示：在展示框内直接修改文字，左侧代码会同步更新。</div>
+    <div class="toolbar">
+        <button class="btn" title="加粗" onclick="cmd('bold')"><b>B</b> 加粗</button>
+        <button class="btn" title="斜体" onclick="cmd('italic')"><i>I</i> 斜体</button>
+        <button class="btn" title="段落" onclick="cmd('formatBlock', 'p')">¶ 段落</button>
+        <button class="btn" title="换行" onclick="insertHTML('<br>')">⏎ 换行</button>
+        <button class="btn" title="项目符号" onclick="cmd('insertUnorderedList')">• 列表</button>
+        <div style="width: 1px; background: #ddd; margin: 0 5px;"></div>
+        <button class="btn" title="插入括号" onclick="insertBrackets()">【 重点 】</button>
+        <button class="btn" title="参数模板" onclick="insertSpecTemplate()">📋 规格模板</button>
+        <button class="btn" title="清空" onclick="if(confirm('确定清空所有内容吗？')) { visual.innerHTML=''; syncToCode(); }">🗑️ 清空</button>
+        
+        <button class="btn btn-primary" onclick="cleanAndCopy()">确认合规并复制代码</button>
+    </div>
+
+    <div class="main-container">
+        <div class="pane">
+            <div class="pane-title">可视化展示框 (可直接点击编辑)</div>
+            <div id="visual-editor" contenteditable="true"></div>
+        </div>
+
+        <div class="pane">
+            <div class="pane-title">HTML 代码端 (实时同步)</div>
+            <textarea id="code-editor" spellcheck="false"></textarea>
+        </div>
     </div>
 
     <script>
-        const codeArea = document.getElementById('codeArea');
-        const output = document.getElementById('output');
+        const visual = document.getElementById('visual-editor');
+        const code = document.getElementById('code-editor');
 
-        // 1. 代码端修改 -> 同步到展示框
-        codeArea.addEventListener('input', () => {
-            output.innerHTML = codeArea.value;
+        // 1. 可视化端修改 -> 同步到代码端
+        visual.addEventListener('input', syncToCode);
+
+        // 2. 代码端修改 -> 同步到可视化端
+        code.addEventListener('input', () => {
+            visual.innerHTML = code.value;
         });
 
-        // 2. 展示框内容修改 -> 同步到代码端
-        output.addEventListener('input', () => {
-            // 这里我们稍微处理下，让代码排版好看点
-            codeArea.value = output.innerHTML.replace(/>\s+</g, '><').replace(/<br>/g, '<br>\n');
-        });
-
-        // 执行富文本命令 (加粗、斜体等)
-        function execCmd(command) {
-            document.execCommand(command, false, null);
-            syncFromOutput();
+        function syncToCode() {
+            // 获取 HTML 并简单美化
+            let html = visual.innerHTML;
+            code.value = formatHTML(html);
         }
 
-        // 插入列表
-        function insertList() {
-            document.execCommand('insertUnorderedList', false, null);
-            syncFromOutput();
+        // 执行编辑器命令
+        function cmd(name, value = null) {
+            document.execCommand(name, false, value);
+            visual.focus();
+            syncToCode();
         }
 
-        // 插入规格模板
-        function insertTemplate() {
-            const specs = `<strong>【Specifications】</strong><ul><li>Material: </li><li>Power: </li></ul><strong>【What's in the Box?】</strong><ul><li>1 x Pixelink-US Device</li></ul>`;
-            output.focus();
-            document.execCommand('insertHTML', false, specs);
-            syncFromOutput();
+        function insertHTML(html) {
+            document.execCommand('insertHTML', false, html);
+            syncToCode();
         }
 
-        function syncFromOutput() {
-            codeArea.value = output.innerHTML;
+        function insertBrackets() {
+            const sel = window.getSelection();
+            const selectedText = sel.toString();
+            insertHTML(`<b>【${selectedText || '此处填写卖点'}】</b>`);
         }
 
-        // 亚马逊合规化清理（最核心功能）
-        function cleanForAmazon() {
-            let html = output.innerHTML;
-            
-            // 创建一个临时元素来处理
+        function insertSpecTemplate() {
+            const template = `<b>【Specifications】</b><br><ul><li>Model: </li><li>Power: </li><li>CRI: </li></ul><b>【Package Includes】</b><br><ul><li>1 x Pixelink-US Light</li><li>1 x User Manual</li></ul>`;
+            insertHTML(template);
+        }
+
+        // 格式化代码，使其易读
+        function formatHTML(html) {
+            return html
+                .replace(/><\/p>/g, '></p>\n')
+                .replace(/<br>/g, '<br>\n')
+                .replace(/<\/li>/g, '</li>\n')
+                .replace(/<\/ul>/g, '</ul>\n\n');
+        }
+
+        // 亚马逊合规化逻辑：只保留允许的标签，彻底删除 class, style, id 等
+        function cleanAndCopy() {
             const temp = document.createElement('div');
-            temp.innerHTML = html;
+            temp.innerHTML = visual.innerHTML;
             
-            // 亚马逊 A10 算法清理逻辑：只保留特定标签，清除所有 style, class, id
-            const clean = (node) => {
-                const allowedTags = ['P', 'B', 'STRONG', 'BR', 'UL', 'LI', 'I', 'EM'];
-                let result = "";
-                
-                if (node.nodeType === 3) return node.textContent; // 文本节点
-                if (node.nodeType === 1) {
+            const allowedTags = ['P', 'B', 'STRONG', 'BR', 'UL', 'LI', 'I', 'EM'];
+            
+            function sanitize(node) {
+                let output = "";
+                if (node.nodeType === 3) return node.textContent; // 文本
+                if (node.nodeType === 1) { // 元素
                     if (allowedTags.includes(node.tagName)) {
-                        let openTag = `<${node.tagName.toLowerCase()}>`;
-                        let closeTag = `</${node.tagName.toLowerCase()}>`;
+                        let tag = node.tagName.toLowerCase();
                         let content = "";
-                        for (let child of node.childNodes) content += clean(child);
-                        return openTag + content + closeTag;
+                        for (let child of node.childNodes) content += sanitize(child);
+                        return `<${tag}>${content}</${tag}>`;
                     } else {
-                        // 如果是不允许的标签（如 div, span），则去掉标签保留内容
+                        // 不允许的标签则递归保留内容
                         let content = "";
-                        for (let child of node.childNodes) content += clean(child);
+                        for (let child of node.childNodes) content += sanitize(child);
                         return content;
                     }
                 }
                 return "";
-            };
+            }
 
-            let finalCode = "";
-            for (let child of temp.childNodes) finalCode += clean(child);
+            let result = "";
+            for (let child of temp.childNodes) result += sanitize(child);
             
-            // 格式化换行以便阅读
-            finalCode = finalCode.replace(/<\/p>/g, '</p>\n').replace(/<br>/g, '<br>\n').replace(/<\/li>/g, '</li>\n');
+            // 最终格式化并输出
+            const final = formatHTML(result.trim());
+            code.value = final;
+            visual.innerHTML = final;
             
-            codeArea.value = finalCode;
-            output.innerHTML = finalCode;
-            
-            // 自动复制到剪贴板
-            codeArea.select();
+            // 自动复制
+            code.select();
             document.execCommand('copy');
-            alert('代码已完成亚马逊合规化，并已复制到剪贴板！可以直接去后台粘贴了。');
+            alert('✅ 亚马逊合规代码已生成并复制到剪贴板！\n\n注意：已自动删除所有非法标签和样式。');
         }
+
+        // 初始化演示内容
+        window.onload = () => {
+            visual.innerHTML = "<b>【Your Product Title】</b><p>在这里输入您的产品描述...</p>";
+            syncToCode();
+        };
     </script>
 </body>
 </html>
