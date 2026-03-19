@@ -24,7 +24,7 @@
         /* Editor Section */
         .editor-container { flex: 1; border: 1px solid #ccc; background: #fff; display: flex; flex-direction: column; min-height: 0; }
         
-        /* Toolbar (Removed "View The HTML Code" from here) */
+        /* Toolbar */
         .toolbar { padding: 10px 15px; border-bottom: 1px solid #eee; display: flex; align-items: center; background: #fff; }
         .tool-btn { background: none; border: none; font-size: 16px; cursor: pointer; color: #555; padding: 5px 8px; font-family: "Times New Roman", Times, serif; }
         .tool-btn:hover { color: #000; background: #f0f0f0; border-radius: 3px; }
@@ -35,7 +35,7 @@
         .work-area { display: flex; flex: 1; overflow: hidden; }
         .pane { flex: 1; display: flex; flex-direction: column; width: 50%; }
         
-        /* Added Right Pane Header */
+        /* Right Pane Header */
         .pane-header { padding: 10px 20px; font-size: 14px; color: #888; border-bottom: 1px solid #eee; border-left: 1px solid #eee; background: #fafafa; }
         
         #visual-editor { flex: 1; padding: 20px; overflow-y: auto; outline: none; font-size: 14px; line-height: 1.5; }
@@ -116,10 +116,8 @@
         const code = document.getElementById('code-editor');
         const charNum = document.getElementById('char-num');
 
-        // 核心修改：强制指定回车键生成 <p> 标签，而非默认的 <div>
+        // 强制指定回车键生成 <p> 标签
         document.execCommand('defaultParagraphSeparator', false, 'p');
-
-        // 为了确保首次点击或清空后依然生效，在获焦时再次强调该规则
         visual.addEventListener('focus', () => {
             document.execCommand('defaultParagraphSeparator', false, 'p');
         });
@@ -131,6 +129,10 @@
             // Handle browser-generated spans for bold/italic
             html = html.replace(/<span style="font-weight:\s*bold;?">(.*?)<\/span>/gi, '<b>$1</b>');
             html = html.replace(/<span style="font-style:\s*italic;?">(.*?)<\/span>/gi, '<i>$1</i>');
+            
+            // 核心修复：实时清除 &nbsp; 及其隐藏的 Unicode 形态，替换为标准空格
+            html = html.replace(/&nbsp;/g, ' ');
+            html = html.replace(/\u00A0/g, ' ');
             
             code.value = html;
             updateCount();
@@ -146,7 +148,7 @@
         function execCmd(command) {
             document.execCommand(command, false, null);
             visual.focus();
-            code.value = visual.innerHTML;
+            code.value = visual.innerHTML.replace(/&nbsp;/g, ' ').replace(/\u00A0/g, ' ');
             updateCount();
         }
 
@@ -181,9 +183,16 @@
             // 2. Strip unsupported tags, keeping only the basics
             html = html.replace(/<\/?(?!p|b|strong|br|ul|ol|li|i|em)\w+>/gi, '');
             
-            // 3. Compact formatting: Remove extra physical line breaks & tabs (keeps HTML code compact)
+            // 3. Compact formatting: Remove extra physical line breaks & tabs
             html = html.replace(/[\r\n\t]+/g, '');
             
+            // 4. 双重保险：在清理阶段再次清剿 &nbsp;
+            html = html.replace(/&nbsp;/g, ' ');
+            html = html.replace(/\u00A0/g, ' ');
+            
+            // 5. 可选：将多个连续的普通空格合并为一个，极致压缩代码体积
+            html = html.replace(/ {2,}/g, ' ');
+
             code.value = html;
             visual.innerHTML = html;
             updateCount();
